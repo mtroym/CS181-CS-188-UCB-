@@ -19,6 +19,7 @@ Pacman agents (in searchAgents.py).
 
 import util
 
+
 class SearchProblem:
     """
     This class outlines the structure of a search problem, but doesn't implement
@@ -72,6 +73,7 @@ def tinyMazeSearch(problem):
     w = Directions.WEST
     return  [s, s, w, s, w, w, s, w]
 
+
 def depthFirstSearch(problem, ds = 0):
     """
     Search the deepest nodes in the search tree first.
@@ -98,7 +100,8 @@ def depthFirstSearch(problem, ds = 0):
             for expandedNode in expanded:
                 if expandedNode[0] not in closed:
                     # avoids expanding any already visited states.
-                    fringe.push(GraphNode(expandedNode[0], node.getAppendPath(expandedNode[1])))
+                    path = node.getPath() + [expandedNode[1]]
+                    fringe.push(GraphNode(expandedNode[0], path))
     return None
 
 
@@ -106,10 +109,6 @@ def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     return depthFirstSearch(problem, 1)
 
-def uniformCostSearch(problem):
-    """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
 
 def nullHeuristic(state, problem=None):
     """
@@ -118,10 +117,31 @@ def nullHeuristic(state, problem=None):
     """
     return 0
 
+
+def uniformCostSearch(problem):
+    """Search the node of least total cost first."""
+    return aStarSearch(problem, nullHeuristic)
+
+
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    closed = []
+    fringe = util.PriorityQueue()
+    fringe.push(GraphNode(problem.getStartState(), []), 0)
+    while not fringe.isEmpty():
+        node = fringe.pop()
+        if problem.isGoalState(node.getState()):
+            return node.getPath()
+        if node.getState() not in closed:
+            closed.append(node.getState())
+            expanded = problem.getSuccessors(node.getState())
+            for expandedNode in expanded:
+                if expandedNode[0] not in closed:
+                    # avoids expanding any already visited states.
+                    path = node.getPath() + [expandedNode[1]]
+                    fringe.push(GraphNode(expandedNode[0], path),
+                                problem.getCostOfActions(path) + heuristic(expandedNode[0], problem))
+    return None
 
 
 class GraphNode:
@@ -134,12 +154,6 @@ class GraphNode:
 
     def getPath(self):
         return self.path
-
-    def getAppendPath(self, direction):
-        tmp = self.path
-        tmp.append(direction)
-        return tmp
-
 
 
 bfs = breadthFirstSearch
