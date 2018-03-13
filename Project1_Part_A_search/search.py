@@ -72,7 +72,7 @@ def tinyMazeSearch(problem):
     w = Directions.WEST
     return  [s, s, w, s, w, w, s, w]
 
-def depthFirstSearch(problem):
+def depthFirstSearch(problem, ds = 0):
     """
     Search the deepest nodes in the search tree first.
 
@@ -81,18 +81,30 @@ def depthFirstSearch(problem):
 
     To get started, you might want to try some of these simple commands to
     understand the search problem that is being passed in:
-
-    print "Start:", problem.getStartState()
-    print "Is the start a goal?", problem.isGoalState(problem.getStartState())
-    print "Start's successors:", problem.getSuccessors(problem.getStartState())
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    closed = []
+    if ds == 0:
+        fringe = util.Stack()
+    else:
+        fringe = util.Queue()
+    fringe.push(GraphNode(problem.getStartState(), []))
+    while not fringe.isEmpty():
+        node = fringe.pop()
+        if problem.isGoalState(node.getState()):
+            return node.getPath()
+        if node.getState() not in closed:
+            closed.append(node.getState())
+            expanded = problem.getSuccessors(node.getState())
+            for expandedNode in expanded:
+                if expandedNode[0] not in closed:
+                    # avoids expanding any already visited states.
+                    fringe.push(GraphNode(expandedNode[0], node.getAppendPath(expandedNode[1])))
+    return None
+
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    return depthFirstSearch(problem, 1)
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
@@ -112,7 +124,24 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     util.raiseNotDefined()
 
 
-# Abbreviations
+class GraphNode:
+    def __init__(self, state, path):
+        self.state = state
+        self.path = path
+
+    def getState(self):
+        return self.state
+
+    def getPath(self):
+        return self.path
+
+    def getAppendPath(self, direction):
+        tmp = self.path
+        tmp.append(direction)
+        return tmp
+
+
+
 bfs = breadthFirstSearch
 dfs = depthFirstSearch
 astar = aStarSearch

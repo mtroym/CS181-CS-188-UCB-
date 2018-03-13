@@ -104,6 +104,7 @@ class GraphSearch(SearchProblem):
 
     # Get all successors of a state
     def getSuccessors(self, state):
+        # type: (object) -> object
         self.expanded_states.append(state)
         return list(self.successors[state])
 
