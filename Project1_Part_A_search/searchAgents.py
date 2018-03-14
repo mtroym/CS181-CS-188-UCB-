@@ -277,10 +277,11 @@ class CornersProblem(search.SearchProblem):
         """
         Stores the walls, pacman's starting position and corners.
         """
+        self.startingGameState = startingGameState
         self.walls = startingGameState.getWalls()
         self.startingPosition = startingGameState.getPacmanPosition()
-        top, right = self.walls.height-2, self.walls.width-2
-        self.corners = ((1,1), (1,top), (right, 1), (right, top))
+        self.top, self.right = self.walls.height-2, self.walls.width-2
+        self.corners = ((1,1), (1,self.top), (self.right, 1), (self.right, self.top))
         for corner in self.corners:
             if not startingGameState.hasFood(*corner):
                 print 'Warning: no food in corner ' + str(corner)
@@ -298,7 +299,7 @@ class CornersProblem(search.SearchProblem):
         """
         Returns whether this search state is a goal state of the problem.
         """
-        return len(state[1])
+        return len(state[1]) == 0
 
     def getSuccessors(self, state):
         """
@@ -319,16 +320,13 @@ class CornersProblem(search.SearchProblem):
             dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
             if not self.walls[nextx][nexty]:
-                if (nextx, nexty) in state[1]:
-                    leftCorner = state[1].remove((nextx, nexty))
-                    nextState = ((nextx, nexty), leftcorner)
-                    successors.append((nextState, action, 1))
-                else:
-                    nextState = ((nextx, nexty), state[1])
-                    successors.append((nextState, action, 1))
+                leftCorner = tuple(corner for corner in state[1] if corner != (nextx, nexty))
+                nextState = ((nextx, nexty), leftCorner)
+                successors.append((nextState, action, 1))
 
         self._expanded += 1 # DO NOT CHANGE
         return successors
+
 
     def getCostOfActions(self, actions):
         """
@@ -357,11 +355,21 @@ def cornersHeuristic(state, problem):
     shortest path from the state to a goal of the problem; i.e.  it should be
     admissible (as well as consistent).
     """
-    corners = problem.corners # These are the corner coordinates
+    corners = list(state[1])# These are the corner coordinates)
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
     position = state[0]
-
-    return 0 # Default to trivial solution
+    ttdis = 0
+    while len(corners) != 0:
+        minDistance = 9999
+        minIndex = -1
+        for i in range(len(corners)):
+            if minDistance > util.manhattanDistance(position, corners[i]):
+                minIndex = i
+                minDistance = util.manhattanDistance(position, corners[i])
+        ttdis += minDistance
+        position = corners[minIndex]
+        corners.remove(corners[minIndex])
+    return ttdis
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -419,6 +427,9 @@ class FoodSearchProblem:
             cost += 1
         return cost
 
+
+def norm2Distance(point1, point2):
+    return ((point1[0] - point2[0])**2+(point1[1]-point2[1])**2)**2
 
 def mazeDistance(point1, point2, gameState):
     """
