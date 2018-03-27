@@ -252,33 +252,31 @@ def betterEvaluationFunction(currentGameState):
     """
     newPos = currentGameState.getPacmanPosition()
     newFood = currentGameState.getFood()
+    newCapsules = currentGameState.getCapsules()
     newGhostStates = currentGameState.getGhostStates()
     newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
-    score=currentGameState.getScore()
-    minlist=500
-    minghost=500
-    #consist=10
-    foodmain=currentGameState.getNumFood()
-    newfoodmain=currentGameState.getNumFood()
-    if newfoodmain==0:
-      return score+10000
-    #if foodmain>newfoodmain:
-    #  consist=1000
-    for foodlist in newFood.asList():
-        #if newFood.asList(successorGameState.getPacmanPosition):
-      minlist=min(manhattanDistance(newPos,foodlist),minlist)
-    for ghostlist in newGhostStates:
-      minghost=min(manhattanDistance(ghostlist.getPosition(),newPos),minghost)
-    #for foodlist in newFood.asList():
-    #  if manhattanDistance(newPos,foodlist)==minlist:
-        #    for ghostp in newGhostStates:
-              #if action==STOP:
-              #  return 0
-            #  print "ghostindexxxxxxxxxxxxxxx:",ghostindex
-            #  print "ghostpositionxxxxxxxxxxxxxxx:",newGhostStates(ghostindex).getPosition()
-      if  minghost<3:
-        return -100000
-    return score-(2*(minghost+1)+(manhattanDistance(newPos,foodlist)+1))
+    score = currentGameState.getScore()
+    capDists = [manhattanDistance(newPos, capPos) for capPos in newCapsules]
+    foodDists = [manhattanDistance(newPos, foodPos) for foodPos in newFood]
+    ghostDists = [manhattanDistance(newPos, ghostState.getPosition()) for ghostState in newGhostStates]
+    if max(newScaredTimes) > 0:
+        # print('fight with ghost')
+        return score + 1*max(newScaredTimes)/(ghostDists[newScaredTimes.index(max(newScaredTimes))] + 1)
+
+    if len(capDists) != 0:
+        # if min(ghostDists) <= min(capDists):
+        # print('seek for caps')
+        return score - min(capDists)
+
+    if min(ghostDists) < 2:
+        # print('run!')
+        return -1000000.0
+
+    if min(foodDists) < 1:
+        # print('food!')
+        return score
+
+    return score + 1*min(foodDists)
 
 # Abbreviation
 better = betterEvaluationFunction
