@@ -22,12 +22,11 @@ import sys
 import logic
 import game
 
-
-
 pacman_str = 'P'
 ghost_pos_str = 'G'
 ghost_east_str = 'GE'
 pacman_alive_str = 'PA'
+
 
 class PlanningProblem:
     """
@@ -49,7 +48,7 @@ class PlanningProblem:
         Only used in problems that use ghosts (FoodGhostPlanningProblem)
         """
         util.raiseNotDefined()
-        
+
     def getGoalState(self):
         """
         Returns goal state for problem. Note only defined for problems that have
@@ -167,6 +166,7 @@ def atMostOne(literals):
         for j in range(len(literals)):
             if j > i:
                 conj.append(logic.disjoin([~literals[i], ~literals[j]]))
+    # print(logic.conjoin(conj))
     return logic.conjoin(conj)
 
 
@@ -206,11 +206,12 @@ def pacmanSuccessorStateAxioms(x, y, t, walls_grid):
     """
     listlit = []
     actions = ['South', 'North', 'West', 'East']
-    xs = [x, x, x+1, x-1]
-    ys = [y+1, y-1, y, y]
+    xs = [x, x, x + 1, x - 1]
+    ys = [y + 1, y - 1, y, y]
     for i in range(len(actions)):
         if not walls_grid[xs[i]][ys[i]]:
-            listlit.append(logic.PropSymbolExpr(pacman_str, xs[i], ys[i], t-1) & logic.PropSymbolExpr(actions[i], t-1))
+            listlit.append(
+                logic.PropSymbolExpr(pacman_str, xs[i], ys[i], t - 1) & logic.PropSymbolExpr(actions[i], t - 1))
     return logic.to_cnf(logic.disjoin(listlit) % logic.PropSymbolExpr(pacman_str, x, y, t))
 
 
@@ -223,8 +224,27 @@ def positionLogicPlan(problem):
     walls = problem.walls
     width, height = problem.getWidth(), problem.getHeight()
 
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    "********CODE*******"
+    x_0, y_0 = problem.getStartState()
+    x_N, y_N = problem.getGoalState()
+    actions = ['South', 'North', 'West', 'East']
+    MAX_TIME = 50
+    knowledgeBase = logic.PropSymbolExpr(pacman_str, x_0, y_0, 0)
+    for t in range(0, MAX_TIME + 1):
+        checkGoal = logic.PropSymbolExpr(pacman_str, x_N, y_N, t + 1)
+        knowledgeBase = logic.conjoin(
+            [knowledgeBase, exactlyOne([logic.PropSymbolExpr(action, t) for action in actions])])
+        for x in range(1, width + 1):
+            for y in range(1, height + 1):
+                if t == 0 and (x != x_0 or y != y_0):
+                    knowledgeBase = logic.conjoin([knowledgeBase, ~(logic.PropSymbolExpr(pacman_str, x, y, t))])
+                if not walls[x][y]:
+                    knowledgeBase = logic.conjoin([knowledgeBase, pacmanSuccessorStateAxioms(x, y, t + 1, walls)])
+        isGoal = logic.conjoin(knowledgeBase, checkGoal)
+        model = findModel(isGoal)
+
+        if model:
+            return extractActionSequence(model, actions)
 
 
 def foodLogicPlan(problem):
@@ -238,7 +258,27 @@ def foodLogicPlan(problem):
     width, height = problem.getWidth(), problem.getHeight()
 
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    x_0, y_0 = problem.getStartState()[0]
+    foods = problem.getStartState()[1]
+    actions = ['South', 'North', 'West', 'East']
+    MAX_TIME = 50
+    knowledgeBase = logic.PropSymbolExpr(pacman_str, x_0, y_0, 0)
+    for t in range(0, MAX_TIME + 1):
+        checkGoal = logic.PropSymbolExpr(pacman_str, x_N, y_N, t + 1)
+        knowledgeBase = logic.conjoin(
+            [knowledgeBase, exactlyOne([logic.PropSymbolExpr(action, t) for action in actions])])
+        for x in range(1, width + 1):
+            for y in range(1, height + 1):
+                if t == 0 and (x != x_0 or y != y_0):
+                    knowledgeBase = logic.conjoin([knowledgeBase, ~(logic.PropSymbolExpr(pacman_str, x, y, t))])
+                if not walls[x][y]:
+                    knowledgeBase = logic.conjoin([knowledgeBase, pacmanSuccessorStateAxioms(x, y, t + 1, walls)])
+        isGoal = logic.conjoin(knowledgeBase, checkGoal)
+        model = findModel(isGoal)
+
+        if model:
+            return extractActionSequence(model, actions)
+
 
 
 # Abbreviations
@@ -247,4 +287,3 @@ flp = foodLogicPlan
 
 # Some for the logic module uses pretty deep recursion on long expressions
 sys.setrecursionlimit(100000)
-    
