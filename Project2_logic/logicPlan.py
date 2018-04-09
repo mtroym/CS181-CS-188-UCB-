@@ -264,16 +264,19 @@ def foodLogicPlan(problem):
     MAX_TIME = 50
     knowledgeBase = logic.PropSymbolExpr(pacman_str, x_0, y_0, 0)
     for t in range(0, MAX_TIME + 1):
-        checkGoal = logic.PropSymbolExpr(pacman_str, x_N, y_N, t + 1)
-        knowledgeBase = logic.conjoin(
-            [knowledgeBase, exactlyOne([logic.PropSymbolExpr(action, t) for action in actions])])
+        knowledgeBase = logic.conjoin([knowledgeBase,
+                                       exactlyOne([logic.PropSymbolExpr(action, t) for action in actions])])
+        checkGoal = logic.PropSymbolExpr(pacman_str, x_0, y_0, 0)
         for x in range(1, width + 1):
             for y in range(1, height + 1):
                 if t == 0 and (x != x_0 or y != y_0):
                     knowledgeBase = logic.conjoin([knowledgeBase, ~(logic.PropSymbolExpr(pacman_str, x, y, t))])
                 if not walls[x][y]:
                     knowledgeBase = logic.conjoin([knowledgeBase, pacmanSuccessorStateAxioms(x, y, t + 1, walls)])
-        isGoal = logic.conjoin(knowledgeBase, checkGoal)
+                if foods[x][y]:
+                    checkGoal = logic.conjoin([checkGoal,
+                        logic.disjoin([logic.PropSymbolExpr(pacman_str, x, y, tt) for tt in range(0, t+2)])])
+        isGoal = logic.conjoin([checkGoal, knowledgeBase])
         model = findModel(isGoal)
 
         if model:
