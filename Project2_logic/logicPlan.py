@@ -22,11 +22,11 @@ import sys
 import logic
 import game
 
-
 pacman_str = 'P'
 ghost_pos_str = 'G'
 ghost_east_str = 'GE'
 pacman_alive_str = 'PA'
+
 
 class PlanningProblem:
     """
@@ -48,13 +48,14 @@ class PlanningProblem:
         Only used in problems that use ghosts (FoodGhostPlanningProblem)
         """
         util.raiseNotDefined()
-        
+
     def getGoalState(self):
         """
         Returns goal state for problem. Note only defined for problems that have
         a unique goal state such as PositionPlanningProblem
         """
         util.raiseNotDefined()
+
 
 def tinyMazePlan(problem):
     """
@@ -64,7 +65,8 @@ def tinyMazePlan(problem):
     from game import Directions
     s = Directions.SOUTH
     w = Directions.WEST
-    return  [s, s, w, s, w, w, s, w]
+    return [s, s, w, s, w, w, s, w]
+
 
 def sentence1():
     """Returns a logic.Expr instance that encodes that the following expressions are all true.
@@ -73,8 +75,13 @@ def sentence1():
     (not A) if and only if ((not B) or C)
     (not A) or (not B) or C
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    A = logic.Expr('A')
+    B = logic.Expr('B')
+    C = logic.Expr('C')
+    return logic.conjoin([(A | B),
+                          (~A % (~B | C)),
+                          logic.disjoin([~A, ~B, C])])
+
 
 def sentence2():
     """Returns a logic.Expr instance that encodes that the following expressions are all true.
@@ -84,8 +91,15 @@ def sentence2():
     (not (B and (not C))) implies A
     (not D) implies C
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    A = logic.Expr('A')
+    B = logic.Expr('B')
+    C = logic.Expr('C')
+    D = logic.Expr('D')
+    return logic.conjoin([(C % (B | D)),
+                          A >> (~B & ~D),
+                          ~(B & ~C) >> A,
+                          ~D >> C])
+
 
 def sentence3():
     """Using the symbols WumpusAlive[1], WumpusAlive[0], WumpusBorn[0], and WumpusKilled[0],
@@ -99,23 +113,32 @@ def sentence3():
 
     The Wumpus is born at time 0.
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    WumpusAlive_1 = logic.PropSymbolExpr('WumpusAlive', 1)
+    WumpusAlive_0 = logic.PropSymbolExpr('WumpusAlive', 0)
+    WumpusBorn_0 = logic.PropSymbolExpr('WumpusBorn', 0)
+    WumpusKilled_0 = logic.PropSymbolExpr('WumpusKilled', 0)
+
+    return logic.conjoin([WumpusAlive_1 % ((WumpusAlive_0 & ~WumpusKilled_0) | (~WumpusAlive_0 & WumpusBorn_0)),
+                          ~(WumpusAlive_0 & WumpusBorn_0),
+                          WumpusBorn_0])
+
 
 def findModel(sentence):
     """Given a propositional logic sentence (i.e. a logic.Expr instance), returns a satisfying
     model if one exists. Otherwise, returns False.
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    cnf = logic.to_cnf(sentence)
+    sol = logic.pycoSAT(cnf)
+    return sol
 
-def atLeastOne(literals) :
+
+def atLeastOne(literals):
     """
     Given a list of logic.Expr literals (i.e. in the form A or ~A), return a single 
     logic.Expr instance in CNF (conjunctive normal form) that represents the logic 
     that at least one of the literals in the list is true.
-    >>> A = logic.PropSymbolExpr('A');
-    >>> B = logic.PropSymbolExpr('B');
+    >>> A = logic.PropSymbolExpr('A')
+    >>> B = logic.PropSymbolExpr('B')
     >>> symbols = [A, B]
     >>> atleast1 = atLeastOne(symbols)
     >>> model1 = {A:False, B:False}
@@ -128,28 +151,32 @@ def atLeastOne(literals) :
     >>> print logic.pl_true(atleast1,model2)
     True
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    final = logic.disjoin(literals)
+    return final
 
 
-def atMostOne(literals) :
+def atMostOne(literals):
     """
     Given a list of logic.Expr literals, return a single logic.Expr instance in 
     CNF (conjunctive normal form) that represents the logic that at most one of 
     the expressions in the list is true.
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    conj = []
+    for i in range(len(literals)):
+        for j in range(len(literals)):
+            if j > i:
+                conj.append(logic.disjoin([~literals[i], ~literals[j]]))
+    # print(logic.conjoin(conj))
+    return logic.conjoin(conj)
 
 
-def exactlyOne(literals) :
+def exactlyOne(literals):
     """
     Given a list of logic.Expr literals, return a single logic.Expr instance in 
     CNF (conjunctive normal form)that represents the logic that exactly one of 
     the expressions in the list is true.
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    return atLeastOne(literals) & atMostOne(literals)
 
 
 def extractActionSequence(model, actions):
@@ -164,8 +191,11 @@ def extractActionSequence(model, actions):
     >>> print plan
     ['West', 'South', 'North']
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    plan = []
+    for k in model:
+        if (logic.PropSymbolExpr.parseExpr(k)[0] in actions) and model[k] == True:
+            plan.append((logic.PropSymbolExpr.parseExpr(k)[0], int(logic.PropSymbolExpr.parseExpr(k)[1])))
+    return [xxx[0] for xxx in sorted(plan, key=lambda x: x[1])]
 
 
 def pacmanSuccessorStateAxioms(x, y, t, walls_grid):
@@ -174,8 +204,15 @@ def pacmanSuccessorStateAxioms(x, y, t, walls_grid):
     grid representing the wall locations).
     Current <==> (previous position at time t-1) & (took action to move to x, y)
     """
-    "*** YOUR CODE HERE ***"
-    return logic.Expr('A') # Replace this with your expression
+    listlit = []
+    actions = ['South', 'North', 'West', 'East']
+    xs = [x, x, x + 1, x - 1]
+    ys = [y + 1, y - 1, y, y]
+    for i in range(len(actions)):
+        if not walls_grid[xs[i]][ys[i]]:
+            listlit.append(
+                logic.PropSymbolExpr(pacman_str, xs[i], ys[i], t - 1) & logic.PropSymbolExpr(actions[i], t - 1))
+    return logic.to_cnf(logic.disjoin(listlit) % logic.PropSymbolExpr(pacman_str, x, y, t))
 
 
 def positionLogicPlan(problem):
@@ -186,9 +223,28 @@ def positionLogicPlan(problem):
     """
     walls = problem.walls
     width, height = problem.getWidth(), problem.getHeight()
-    
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    "********CODE*******"
+    x_0, y_0 = problem.getStartState()
+    x_N, y_N = problem.getGoalState()
+    actions = ['South', 'North', 'West', 'East']
+    MAX_TIME = 50
+    knowledgeBase = logic.PropSymbolExpr(pacman_str, x_0, y_0, 0)
+    for t in range(0, MAX_TIME + 1):
+        checkGoal = logic.PropSymbolExpr(pacman_str, x_N, y_N, t + 1)
+        knowledgeBase = logic.conjoin(
+            [knowledgeBase, exactlyOne([logic.PropSymbolExpr(action, t) for action in actions])])
+        for x in range(1, width + 1):
+            for y in range(1, height + 1):
+                if t == 0 and (x != x_0 or y != y_0):
+                    knowledgeBase = logic.conjoin([knowledgeBase, ~(logic.PropSymbolExpr(pacman_str, x, y, t))])
+                if not walls[x][y]:
+                    knowledgeBase = logic.conjoin([knowledgeBase, pacmanSuccessorStateAxioms(x, y, t + 1, walls)])
+        isGoal = logic.conjoin(knowledgeBase, checkGoal)
+        model = findModel(isGoal)
+
+        if model:
+            return extractActionSequence(model, actions)
 
 
 def foodLogicPlan(problem):
@@ -202,7 +258,30 @@ def foodLogicPlan(problem):
     width, height = problem.getWidth(), problem.getHeight()
 
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    x_0, y_0 = problem.getStartState()[0]
+    foods = problem.getStartState()[1]
+    actions = ['South', 'North', 'West', 'East']
+    MAX_TIME = 50
+    knowledgeBase = logic.PropSymbolExpr(pacman_str, x_0, y_0, 0)
+    for t in range(0, MAX_TIME + 1):
+        knowledgeBase = logic.conjoin([knowledgeBase,
+                                       exactlyOne([logic.PropSymbolExpr(action, t) for action in actions])])
+        checkGoal = logic.PropSymbolExpr(pacman_str, x_0, y_0, 0)
+        for x in range(1, width + 1):
+            for y in range(1, height + 1):
+                if t == 0 and (x != x_0 or y != y_0):
+                    knowledgeBase = logic.conjoin([knowledgeBase, ~(logic.PropSymbolExpr(pacman_str, x, y, t))])
+                if not walls[x][y]:
+                    knowledgeBase = logic.conjoin([knowledgeBase, pacmanSuccessorStateAxioms(x, y, t + 1, walls)])
+                if foods[x][y]:
+                    checkGoal = logic.conjoin([checkGoal,
+                        logic.disjoin([logic.PropSymbolExpr(pacman_str, x, y, tt) for tt in range(0, t+2)])])
+        isGoal = logic.conjoin([checkGoal, knowledgeBase])
+        model = findModel(isGoal)
+
+        if model:
+            return extractActionSequence(model, actions)
+
 
 
 # Abbreviations
@@ -211,4 +290,3 @@ flp = foodLogicPlan
 
 # Some for the logic module uses pretty deep recursion on long expressions
 sys.setrecursionlimit(100000)
-    
