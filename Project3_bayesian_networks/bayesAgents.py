@@ -127,6 +127,7 @@ def fillXCPT(bayesNet, gameState):
     xFactor.setProbability({X_POS_VAR: FOOD_LEFT_VAL}, PROB_FOOD_LEFT)
     xFactor.setProbability({X_POS_VAR: GHOST_LEFT_VAL}, 1 - PROB_FOOD_LEFT)
     bayesNet.setCPT(X_POS_VAR, xFactor)
+    # print xFactor
 
 def fillYCPT(bayesNet, gameState):
     """
@@ -137,11 +138,13 @@ def fillYCPT(bayesNet, gameState):
     You can use the PROB_* constants imported from layout rather than writing
     probabilities down by hand.
     """
-    from layout import PROB_BOTH_TOP, PROB_BOTH_BOTTOM, PROB_ONLY_LEFT_TOP, PROB_ONLY_LEFT_BOTTOM
+    # from layout import PROB_BOTH_TOP, PROB_BOTH_BOTTOM, PROB_ONLY_LEFT_TOP, PROB_ONLY_LEFT_BOTTOM
     Y_PROBS = [PROB_BOTH_TOP, PROB_BOTH_BOTTOM, PROB_ONLY_LEFT_TOP, PROB_ONLY_LEFT_BOTTOM]
     yFactor = bn.Factor([Y_POS_VAR], [], bayesNet.variableDomainsDict())
     map(lambda i: yFactor.setProbability({Y_POS_VAR: Y_POS_VALS[i]}, Y_PROBS[i]), range(4))
     bayesNet.setCPT(Y_POS_VAR, yFactor)
+    # print yFactor
+
 
 def fillHouseCPT(bayesNet, gameState):
     foodHouseFactor = bn.Factor([FOOD_HOUSE_VAR], [X_POS_VAR, Y_POS_VAR], bayesNet.variableDomainsDict())
@@ -160,7 +163,7 @@ def fillHouseCPT(bayesNet, gameState):
 
         foodHouseFactor.setProbability(assignment, prob)
     bayesNet.setCPT(FOOD_HOUSE_VAR, foodHouseFactor)
-
+    # print foodHouseFactor
     ghostHouseFactor = bn.Factor([GHOST_HOUSE_VAR], [X_POS_VAR, Y_POS_VAR], bayesNet.variableDomainsDict())
     for assignment in ghostHouseFactor.getAllPossibleAssignmentDicts():
         left = assignment[X_POS_VAR] == GHOST_LEFT_VAL
@@ -177,6 +180,7 @@ def fillHouseCPT(bayesNet, gameState):
 
         ghostHouseFactor.setProbability(assignment, prob)
     bayesNet.setCPT(GHOST_HOUSE_VAR, ghostHouseFactor)
+    # print ghostHouseFactor
 
 def fillObsCPT(bayesNet, gameState):
     """
@@ -202,7 +206,38 @@ def fillObsCPT(bayesNet, gameState):
     house and ghost house are assigned to the same cell.
     """
 
+    """
+    If the adjacent house center is occupied by neither the ghost house or the food house, an observation is none with certainty (probability 1).
+    If the adjacent house center is occupied by the ghost house, it is red with probability PROB_GHOST_RED and blue otherwise.
+    If the adjacent house center is occupied by the food house, it is red with probability PROB_FOOD_RED and blue otherwise.
+    """
     bottomLeftPos, topLeftPos, bottomRightPos, topRightPos = gameState.getPossibleHouses()
+    housePosDict = { BOTTOM_LEFT_VAL:bottomLeftPos, TOP_LEFT_VAL:topLeftPos, BOTTOM_RIGHT_VAL:bottomRightPos, TOP_RIGHT_VAL:topRightPos}
+    def adjacentHouse(pose, houseCenter):
+        return pose in gameState.getHouseWalls(houseCenter)
+    for housePos in gameState.getPossibleHouses():
+        for obsPos in gameState.getHouseWalls(housePos):
+            obsVar = OBS_VAR_TEMPLATE % obsPos
+            obsFactor = bn.Factor([obsVar], [FOOD_HOUSE_VAR, GHOST_HOUSE_VAR], bayesNet.variableDomainsDict())
+            for assignment in obsFactor.getAllPossibleAssignmentDicts():
+                ghost = housePosDict[assignment[GHOST_HOUSE_VAR]]
+                food = housePosDict[assignment[FOOD_HOUSE_VAR]]
+                pr = pb = pn = 0
+                if adjacentHouse(obsPos, food) :
+                    pr = PROB_FOOD_RED
+                    pb = 1 - pr
+                elif adjacentHouse(obsPos, ghost) :
+                    pr = PROB_GHOST_RED
+                    pb = 1 - pr
+                else:
+                    pn = 1
+                if assignment[obsVar] == RED_OBS_VAL:
+                    obsFactor.setProbability(assignment, pr)
+                elif assignment[obsVar] == BLUE_OBS_VAL:
+                    obsFactor.setProbability(assignment, pb)
+                else:
+                    obsFactor.setProbability(assignment, pn)
+            bayesNet.setCPT(obsVar, obsFactor)
 
 
 def getMostLikelyFoodHousePosition(evidence, bayesNet, eliminationOrder):
