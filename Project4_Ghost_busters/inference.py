@@ -74,7 +74,12 @@ class DiscreteDistribution(dict):
         >>> empty
         {}
         """
-        "*** YOUR CODE HERE ***"
+        if len(self.keys()) == 0:
+            return
+        total = reduce(lambda x, y: x + y, self.values())*1.0
+        if total == 0.0:
+            return
+        map(lambda x: self.__setitem__(x, self.__getitem__(x) / total), self.keys())
 
     def sample(self):
         """
@@ -97,8 +102,19 @@ class DiscreteDistribution(dict):
         >>> round(samples.count('d') * 1.0/N, 1)
         0.0
         """
-        "*** YOUR CODE HERE ***"
-
+        self.normalize()
+        if len(self.keys()) == 0:
+            return
+        ordered = list(sorted(self.items()))
+        prob = 0
+        pTable =[]
+        for o in ordered:
+            prob += o[1]
+            pTable.append(prob)
+        p = random.random()
+        for i in range(len(pTable)):
+            if p <= pTable[i]:
+                return ordered[i][0]
 
 class InferenceModule:
     """
