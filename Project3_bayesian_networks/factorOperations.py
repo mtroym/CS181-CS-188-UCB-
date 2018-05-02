@@ -99,10 +99,17 @@ def joinFactors(factors):
                     "Input factors: \n" +
                     "\n".join(map(str, factors)))
 
-
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
-
+    conditionSet = set()
+    unconditionSet = set()
+    for factor in factors:
+        map(lambda c: conditionSet.add(c), factor.conditionedVariables())
+        map(lambda un: unconditionSet.add(un), factor.unconditionedVariables())
+    map(lambda uc: conditionSet.remove(uc) if uc in conditionSet else None, unconditionSet)
+    joinedFactor = Factor(list(unconditionSet), list(conditionSet), factors[0].variableDomainsDict())
+    for assignment in joinedFactor.getAllPossibleAssignmentDicts():
+        finalAssignmentProb = reduce(lambda x, y: x*y, map(lambda f: Factor.getProbability(f, assignment), factors))
+        Factor.setProbability(joinedFactor, assignment, finalAssignmentProb)
+    return joinedFactor
 
 def eliminateWithCallTracking(callTrackingList=None):
 
@@ -149,8 +156,19 @@ def eliminateWithCallTracking(callTrackingList=None):
                     "eliminationVariable:" + str(eliminationVariable) + "\n" +\
                     "unconditionedVariables: " + str(factor.unconditionedVariables()))
 
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        conditionSet = set()
+        unconditionSet = set()
+        print(factor, eliminationVariable)
+        # for factor in factors:
+        #     map(lambda c: conditionSet.add(c), factor.conditionedVariables())
+        #     map(lambda un: unconditionSet.add(un), factor.unconditionedVariables())
+        # map(lambda uc: conditionSet.remove(uc) if uc in conditionSet else None, unconditionSet)
+        # joinedFactor = Factor(list(unconditionSet), list(conditionSet), factors[0].variableDomainsDict())
+        # for assignment in joinedFactor.getAllPossibleAssignmentDicts():
+        #     finalAssignmentProb = reduce(lambda x, y: x * y,
+        #                                  map(lambda f: Factor.getProbability(f, assignment), factors))
+        #     Factor.setProbability(joinedFactor, assignment, finalAssignmentProb)
+        return factor
 
     return eliminate
 

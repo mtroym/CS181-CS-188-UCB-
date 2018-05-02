@@ -205,14 +205,16 @@ def fillObsCPT(bayesNet, gameState):
     autograder, use the *food house distribution* over colors when both the food
     house and ghost house are assigned to the same cell.
     """
-
     """
     If the adjacent house center is occupied by neither the ghost house or the food house, an observation is none with certainty (probability 1).
     If the adjacent house center is occupied by the ghost house, it is red with probability PROB_GHOST_RED and blue otherwise.
     If the adjacent house center is occupied by the food house, it is red with probability PROB_FOOD_RED and blue otherwise.
     """
     bottomLeftPos, topLeftPos, bottomRightPos, topRightPos = gameState.getPossibleHouses()
-    housePosDict = { BOTTOM_LEFT_VAL:bottomLeftPos, TOP_LEFT_VAL:topLeftPos, BOTTOM_RIGHT_VAL:bottomRightPos, TOP_RIGHT_VAL:topRightPos}
+    housePosDict = { BOTTOM_LEFT_VAL:bottomLeftPos,
+                     TOP_LEFT_VAL:topLeftPos,
+                     BOTTOM_RIGHT_VAL:bottomRightPos,
+                     TOP_RIGHT_VAL:topRightPos}
     def adjacentHouse(pose, houseCenter):
         return pose in gameState.getHouseWalls(houseCenter)
     for housePos in gameState.getPossibleHouses():
