@@ -254,8 +254,12 @@ def getMostLikelyFoodHousePosition(evidence, bayesNet, eliminationOrder):
 
     (This should be a very short method.)
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    from inference import inferenceByVariableElimination, Factor
+    factor = inferenceByVariableElimination(bayesNet, FOOD_HOUSE_VAR, evidence, eliminationOrder)
+    assignDict = factor.getAllPossibleAssignmentDicts()
+    probs = map(lambda ass: Factor.getProbability(factor, ass), assignDict)
+    bestAss = assignDict[probs.index(max(probs))]
+    return bestAss
 
 
 class BayesAgent(game.Agent):

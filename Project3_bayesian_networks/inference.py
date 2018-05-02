@@ -129,11 +129,19 @@ def inferenceByVariableEliminationWithCallTracking(callTrackingList=None):
             eliminationVariables = bayesNet.variablesSet() - set(queryVariables) -\
                                    set(evidenceDict.keys())
             eliminationOrder = sorted(list(eliminationVariables))
-
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
-
+        # total CPT with reference evidence
+        factorTable = bayesNet.getAllCPTsWithEvidence(evidenceDict)
+        for v in eliminationOrder:
+            factorV = [factor for factor in factorTable if v in factor.variables()]
+            factorTableNext = [factor for factor in factorTable if v not in factor.variables()]  # store unused factor
+            # Join
+            joinedFactor = joinFactorsByVariable(factorV, v)[1]
+            # eliminate
+            if len(joinedFactor.unconditionedVariables()) > 1:  # Sum out v if P(v, XXX| YYY )
+                eliminatedFactor = eliminate(joinedFactor, v)
+                factorTableNext.append(eliminatedFactor)
+            factorTable = factorTableNext
+        return normalize(joinFactors(factorTable))
     return inferenceByVariableElimination
 
 inferenceByVariableElimination = inferenceByVariableEliminationWithCallTracking()
@@ -185,7 +193,7 @@ def sampleFromFactorRandomSource(randomSource=None):
             CPT = factor.specializeVariableDomains(newVariableDomainsDict)
         else:
             CPT = factor
-        
+
         # Get the probability of each row of the table (along with the
         # assignmentDict that it corresponds to)
         assignmentDicts = sorted([assignmentDict for assignmentDict in CPT.getAllPossibleAssignmentDicts()])

@@ -156,19 +156,26 @@ def eliminateWithCallTracking(callTrackingList=None):
                     "eliminationVariable:" + str(eliminationVariable) + "\n" +\
                     "unconditionedVariables: " + str(factor.unconditionedVariables()))
 
-        conditionSet = set()
-        unconditionSet = set()
-        print(factor, eliminationVariable)
-        # for factor in factors:
-        #     map(lambda c: conditionSet.add(c), factor.conditionedVariables())
-        #     map(lambda un: unconditionSet.add(un), factor.unconditionedVariables())
-        # map(lambda uc: conditionSet.remove(uc) if uc in conditionSet else None, unconditionSet)
-        # joinedFactor = Factor(list(unconditionSet), list(conditionSet), factors[0].variableDomainsDict())
-        # for assignment in joinedFactor.getAllPossibleAssignmentDicts():
-        #     finalAssignmentProb = reduce(lambda x, y: x * y,
-        #                                  map(lambda f: Factor.getProbability(f, assignment), factors))
-        #     Factor.setProbability(joinedFactor, assignment, finalAssignmentProb)
-        return factor
+        def ttt(a1, a2):
+            for k in a1:
+                if a1[k] != a2[k]:
+                    return False
+            return True
+
+        eliminatedCondSet = set() # P(A | B) -> B
+        map(lambda c: eliminatedCondSet.add(c), factor.conditionedVariables())
+        eliminatedUncondSet = set() # P(A | B) -> A
+        map(lambda un: eliminatedUncondSet.add(un), factor.unconditionedVariables())
+        eliminatedUncondSet.remove(eliminationVariable)
+        eliminatedDomDict = factor.variableDomainsDict()
+        eliminatedDomDict.pop(eliminationVariable)
+        eliminatedFactor = Factor(list(eliminatedUncondSet), list(eliminatedCondSet), eliminatedDomDict)
+        for assignment in eliminatedFactor.getAllPossibleAssignmentDicts():
+            finalAssignmentProb = reduce(lambda x, y: x + y,
+                                         map(lambda f: Factor.getProbability(factor, f) if ttt(assignment, f) else 0,
+                                             factor.getAllPossibleAssignmentDicts()))
+            Factor.setProbability(eliminatedFactor, assignment, finalAssignmentProb)
+        return eliminatedFactor
 
     return eliminate
 
@@ -221,7 +228,20 @@ def normalize(factor):
                             "assignment of the \n" + "conditional variables, " + \
                             "so that total probability will sum to 1\n" + 
                             str(factor))
+    currentDomDict = factor.variableDomainsDict()
+    normalizedCondSet = set()  # P(A | B) -> B
+    normalizedUncondSet = set()  # P(A | B) -> A
+    map(lambda c: normalizedCondSet.add(c) if len(currentDomDict[c]) == 1 else normalizedUncondSet.add(c),
+        factor.variables())
+    normalizedFactor = Factor(normalizedUncondSet, normalizedCondSet, factor.variableDomainsDict())
+    totalProb = reduce(lambda x, y: x+y,
+                       map(lambda ass: Factor.getProbability(factor, ass),
+                           factor.getAllPossibleAssignmentDicts()))
+    if totalProb == 0.0:
+        return None
+    for assignment in normalizedFactor.getAllPossibleAssignmentDicts():
+        finalAssignmentProb = Factor.getProbability(factor, assignment) / totalProb
+        Factor.setProbability(normalizedFactor, assignment, finalAssignmentProb)
+    return normalizedFactor
 
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
 
