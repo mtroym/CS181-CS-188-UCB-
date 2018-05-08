@@ -317,11 +317,15 @@ class ExactInference(InferenceModule):
         """
         newBelief = DiscreteDistribution()
         # t+1 belief dict
+        temp = {}
         for oldPos in self.allPositions:
-            newPosDist = self.getPositionDistribution(gameState, oldPos)
+            if temp.has_key(oldPos):
+                newPosDist = temp[oldPos]
+            else:
+                newPosDist = self.getPositionDistribution(gameState, oldPos)
+                temp[oldPos] = newPosDist
             for p in newPosDist.keys():
                 newBelief[p] += newPosDist[p]*self.beliefs[oldPos]
-        newBelief.normalize()
         self.beliefs = newBelief
 
 
@@ -349,8 +353,13 @@ class ParticleFilter(InferenceModule):
         distributed across positions in order to ensure a uniform prior. Use
         self.particles for the list of particles.
         """
+        # TODO
+        self.particles = []
         leglen = len(self.legalPositions)
-        self.particles = [self.legalPositions[i % leglen] for i in range(self.numParticles)]
+        numPoses = self.numParticles // leglen
+        for i in range(numPoses):
+            self.particles += self.legalPositions
+        self.particles += self.legalPositions[0:self.numParticles - numPoses * leglen]
 
     def observeUpdate(self, observation, gameState):
         """
@@ -369,8 +378,12 @@ class ParticleFilter(InferenceModule):
         sum = 0
         pacmanPosition = gameState.getPacmanPosition()
         jailPoisition = self.getJailPosition()
-        for sample in self.particles:
-            self.beliefs[sample] += self.getObservationProb(observation, pacmanPosition, sample, jailPoisition)
+
+        tempP = list(set(self.particles))                # remove duplicate
+        count = [self.particles.count(x) for x in tempP]
+
+        for sample in tempP:
+            self.beliefs[sample] += self.getObservationProb(observation, pacmanPosition, sample, jailPoisition)*count[tempP.index(sample)]
             sum += self.beliefs[sample]
         if sum == 0:
             self.initializeUniformly(gameState)
@@ -383,7 +396,16 @@ class ParticleFilter(InferenceModule):
         Sample each particle's next state based on its current state and the
         gameState.
         """
-        self.particles = [self.getPositionDistribution(gameState, p).sample() for p in self.particles]
+        temp = {}
+        tempParticles = []
+        for p in self.particles:
+            if temp.has_key(p):
+                tempParticles.append(temp[p].sample())
+            else:
+                tempDistr = self.getPositionDistribution(gameState, p)
+                temp[p] = tempDistr
+                tempParticles.append(temp[p].sample())
+        self.particles = tempParticles
 
 
     def getBeliefDistribution(self):
@@ -393,9 +415,10 @@ class ParticleFilter(InferenceModule):
         essentially converts a list of particles into a belief distribution.
         """
         self.beliefs = DiscreteDistribution()
-        for sample in self.particles:
-            #count
-            self.beliefs[sample] += 1
+        tempP = list(set(self.particles))                # remove duplicate
+        count = [self.particles.count(x) for x in tempP]
+        for i in range(len(tempP)):
+            self.beliefs[tempP[i]] += count[i]
         self.beliefs.normalize()
         return self.beliefs
 
@@ -424,9 +447,13 @@ class JointParticleFilter(ParticleFilter):
         uniform prior.
         """
         "*** YOUR CODE HERE ***"
+        self.particles = []
         poses = [posComb for posComb in itertools.product(self.legalPositions, repeat=self.numGhosts)]
         leglen = len(poses)
-        self.particles = [poses[i % leglen] for i in range(self.numParticles)]
+        numPoses = self.numParticles // leglen
+        for i in range(numPoses):
+            self.particles += poses
+        self.particles += poses[0:self.numParticles - numPoses * leglen]
 
     def addGhostAgent(self, agent):
         """
@@ -465,13 +492,20 @@ class JointParticleFilter(ParticleFilter):
         tempP = list(set(self.particles))                # remove duplicate
         count = [self.particles.count(x) for x in tempP]
         # faster implementation
+
+        jailPoisitions = [self.getJailPosition(i) for i in range(self.numGhosts)]
+        dictALL = {}
         for samples in tempP:
             weight = 1.0                # weight = P(G_1, G_2, ..., G_n | ......)
             for i in range(self.numGhosts):
-                jailPoisition = self.getJailPosition(i)
-                weight *= self.getObservationProb(observation[i], pacmanPosition, samples[i], jailPoisition)
+                keytuple = (observation[i], samples[i], jailPoisitions[i])
+                if dictALL.has_key(keytuple):
+                    weight *= dictALL[keytuple]
+                else:
+                    dictALL[keytuple] = self.getObservationProb(observation[i], pacmanPosition, samples[i], jailPoisitions[i])
+                    weight *= dictALL[keytuple]
             self.beliefs[samples] += weight*count[tempP.index(samples)]
-            sum += weight
+            sum += weight*count[tempP.index(samples)]
         if sum == 0:
             self.initializeUniformly(gameState)
         else:
@@ -484,14 +518,21 @@ class JointParticleFilter(ParticleFilter):
         gameState.
         """
         newParticles = []
+
+        temp = {}
         for oldParticle in self.particles:
-            # newParticle = list(oldParticle)  # A list of ghost positions
+            newParticle = []  # A list of ghost positions
             #
             # now loop through and update each entry in newParticle...
             "*** YOUR CODE HERE ***"
-            newParticle = [self.getPositionDistribution(
-                gameState, oldParticle, index=i, agent=self.ghostAgents[i]).sample()
-                           for i in range(len(oldParticle))]
+            for i in range(len(oldParticle)):
+                tempKey = (oldParticle, i)
+                if temp.has_key(tempKey):
+                    newParticle.append(temp[tempKey].sample())
+                else:
+                    temp[tempKey] = self.getPositionDistribution(
+                        gameState, oldParticle, index=i, agent=self.ghostAgents[i])
+                    newParticle.append(temp[tempKey].sample())
             """*** END YOUR CODE HERE ***"""
             newParticles.append(tuple(newParticle))
         self.particles = newParticles
